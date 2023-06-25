@@ -61,7 +61,14 @@ class FullFileSerializer(FileSerializer):
 
     class Meta:
         model = File
-        fields = ["name", "ideal_title", "file", "images", "text_locations"]
+        fields = [
+            "name",
+            "ideal_title",
+            "file",
+            "processed_file",
+            "images",
+            "text_locations",
+        ]
 
 
 class UpdateFileTitleSerializer(serializers.Serializer):

@@ -1,8 +1,10 @@
 import os
 
 import shutil
+from io import BytesIO
 from time import sleep
 
+import fitz
 from celery import shared_task
 from django.core.files import File
 from pdf2image import convert_from_path
@@ -26,8 +28,6 @@ def process_pdf(pk: str):
     cache.set(f"{pk}-features_loaded", False)
     cache.set(f"{pk}-processed", 1)
     extract_pdf_features.apply_async(kwargs={"pk": pk})
-    split_pdf_into_images.apply_async(kwargs={"pk": pk})
-    load_pdf.apply_async(kwargs={"pk": pk})
     return pk
 
 
@@ -46,8 +46,23 @@ def extract_pdf_features(pk: str):
         text_locations = get_matches(file.file.path, target)
         file.ideal_title = target
         file.text_locations = text_locations
+
+        pdfDoc = fitz.open(file.file.path)
+        for loc in text_locations:
+            page = pdfDoc[loc["page"] - 1]
+            matching_val_area = page.search_for(loc["raw_text"])
+            for rect in matching_val_area:
+                page.add_highlight_annot(rect)
+        output_buffer = BytesIO()
+        pdfDoc.close()
+        with open(file.file.path, mode="wb") as f:
+            f.write(output_buffer.getbuffer())
+
         file.save()
     cache.set(f"{pk}-features_loaded", True)
+    split_pdf_into_images.apply_async(kwargs={"pk": pk})
+    load_pdf.apply_async(kwargs={"pk": pk})
+    # create_processed_pdf.apply_async(kwargs={"pk": pk})
     return pk
 
 
@@ -68,6 +83,18 @@ def update_pdf_features(pk: str, target: str):
         file.save()
     cache.set(f"{pk}-features_loaded", True)
     return pk
+
+
+# @shared_task
+# def create_processed_pdf(pk: str):
+#     file = FileModel.objects.get(pk=pk)
+#     f_path = "processed_" + file.file.path.split("/")[-1]
+#     shutil.copy(file.file.path, f_path)
+#
+#     for loc in file.text_locations:
+#         highlight_pdf(f_path, loc["raw_text"], page=loc["page"] - 1)
+#
+#     os.remove(f_path)
 
 
 @shared_task

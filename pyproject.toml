@@ -54,7 +54,9 @@ levenshtein = "^0.21.1"
 pdfminer-six = "^20221105"
 pandas = "^2.0.2"
 tqdm = "^4.65.0"
-easyocr = "^1.7.0"
+pymupdf = "^1.22.5"
+spacy = "^3.5.3"
+python-levenshtein = "^0.21.1"
 
 
 [build-system]

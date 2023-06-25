@@ -14,6 +14,7 @@ class File(models.Model):
         upload_to="uploads/",
         validators=[FileExtensionValidator(allowed_extensions=["pdf"])],
     )
+    processed_file = models.FileField(upload_to="processed/", null=True, blank=True)
 
     class Meta:
         ordering = ("-uploaded",)
